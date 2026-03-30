@@ -8,7 +8,7 @@ import ProductImage from '../shared/ProductImage';
 /* ── Mini chart components ────────────────────────────────── */
 
 function Sparkline({ data, color = '#3B82F6', width = 72, height = 22 }) {
-  if (!data || data.length === 0) return null;
+  if (!data || data.length < 2) return null;
   const max = Math.max(...data);
   const min = Math.min(...data);
   const range = max - min || 1;
@@ -45,7 +45,7 @@ function AreaChart({ pastData, futureData, color, pastDates, futureDates }) {
   const fmtDate = (d) => d ? d.toLocaleDateString('en-HK', { day: 'numeric', month: 'short' }) : '';
 
   const getPoint = (val, i) => ({
-    x: pad.left + (i / (total - 1)) * chartW,
+    x: pad.left + (total > 1 ? (i / (total - 1)) * chartW : chartW / 2),
     y: pad.top + chartH - (val / max) * chartH,
   });
 
@@ -317,7 +317,7 @@ export default function UnifiedForecastOrder({ products, categories }) {
                   <span className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}>
                     <ChevronRight size={10} className="shrink-0 text-slate-400" />
                   </span>
-                  <span className="w-2 h-2 rounded-full shrink-0 ring-2 ring-offset-1" style={{ backgroundColor: config.dot, ringColor: `${config.dot}30` }} />
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: config.dot, boxShadow: `0 0 0 2px white, 0 0 0 3px ${config.dot}40` }} />
                   <div className="min-w-0">
                     <p className="font-semibold truncate text-slate-800">{product.shortName}</p>
                     <p className="text-[9px] text-slate-400 truncate">{product.brand}</p>

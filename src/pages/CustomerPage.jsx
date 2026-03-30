@@ -1,14 +1,16 @@
 import { useState, useMemo } from 'react';
-import { Search, ChevronDown, ChevronRight, ShoppingCart } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, ShoppingCart, MapPin } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { getRelativeTime, formatPrice, getStockStatus } from '../store/helpers';
 import ProductImage from '../components/shared/ProductImage';
 import StockBadge from '../components/shared/StockBadge';
+import StoreFinderModal from '../components/customer/StoreFinderModal';
 
 export default function CustomerPage() {
   const products = useStore((s) => s.products);
   const categories = useStore((s) => s.categories);
   const lastUpdated = useStore((s) => s.lastUpdated);
+  const [finderProduct, setFinderProduct] = useState(null);
 
   return (
     <div className="flex-1 flex items-start justify-center bg-gradient-to-b from-slate-100 to-slate-200 p-8 overflow-y-auto">
@@ -25,6 +27,7 @@ export default function CustomerPage() {
               products={products}
               categories={categories}
               lastUpdated={lastUpdated}
+              onFindNearby={setFinderProduct}
             />
           </div>
         </div>
@@ -32,11 +35,20 @@ export default function CustomerPage() {
         {/* Label */}
         <p className="text-center text-xs text-slate-400 mt-4">Customer View — as seen on mobile</p>
       </div>
+
+      {/* Store Finder Modal */}
+      {finderProduct && (
+        <StoreFinderModal
+          product={finderProduct}
+          categories={categories}
+          onClose={() => setFinderProduct(null)}
+        />
+      )}
     </div>
   );
 }
 
-function PhoneContent({ products, categories, lastUpdated }) {
+function PhoneContent({ products, categories, lastUpdated, onFindNearby }) {
   const [search, setSearch] = useState('');
   const [collapsedSections, setCollapsedSections] = useState({});
 
@@ -68,7 +80,7 @@ function PhoneContent({ products, categories, lastUpdated }) {
       <div className="pt-14 px-5 pb-3 space-y-3">
         <div className="flex items-center gap-2">
           <ShoppingCart size={18} className="text-primary" />
-          <span className="font-bold text-lg tracking-tight">SuperMart</span>
+          <span className="font-bold text-lg tracking-tight">HKUST Fusion</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse-slow" />
@@ -117,7 +129,12 @@ function PhoneContent({ products, categories, lastUpdated }) {
                 {!isCollapsed && (
                   <div className="grid grid-cols-2 gap-2.5">
                     {items.map((product) => (
-                      <CustomerItemCard key={product.id} product={product} categories={categories} />
+                      <CustomerItemCard
+                        key={product.id}
+                        product={product}
+                        categories={categories}
+                        onFindNearby={onFindNearby}
+                      />
                     ))}
                   </div>
                 )}
@@ -137,23 +154,21 @@ function PhoneContent({ products, categories, lastUpdated }) {
   );
 }
 
-function CustomerItemCard({ product, categories }) {
+function CustomerItemCard({ product, categories, onFindNearby }) {
   const status = getStockStatus(product.stock, product.forecast);
   const isSoldOut = status === 'soldout';
-  const cat = categories[product.category];
+  const isLow = status === 'critical' || status === 'low';
 
   return (
     <div
       className={`bg-white rounded-[10px] overflow-hidden shadow-sm transition-all ${
-        isSoldOut ? 'opacity-50' : ''
-      } ${
         status === 'critical' ? 'ring-1 ring-red-200' : ''
       } ${
         status === 'low' ? 'ring-1 ring-amber-200' : ''
       }`}
     >
       {/* Image */}
-      <div className="relative aspect-[4/3]">
+      <div className={`relative aspect-[4/3] ${isSoldOut ? 'opacity-50' : ''}`}>
         <ProductImage
           product={product}
           categories={categories}
@@ -167,7 +182,7 @@ function CustomerItemCard({ product, categories }) {
       </div>
 
       {/* Info */}
-      <div className="px-2.5 pt-2 pb-0">
+      <div className={`px-2.5 pt-2 pb-0 ${isSoldOut ? 'opacity-50' : ''}`}>
         <p className="text-[9px] uppercase tracking-wider text-slate-400">{product.brand}</p>
         <p className="text-[12px] font-semibold leading-tight line-clamp-2 min-h-[2rem]">{product.shortName}</p>
         <p className="text-[13px] font-semibold mt-0.5">{formatPrice(product.price)}</p>
@@ -177,6 +192,19 @@ function CustomerItemCard({ product, categories }) {
       <div className="mt-1.5">
         <StockBadge stock={product.stock} forecast={product.forecast} variant="customer" />
       </div>
+
+      {/* Find Nearby button — shows when sold out or low stock */}
+      {(isSoldOut || isLow) && (
+        <div className="px-2 pb-2 pt-1">
+          <button
+            onClick={() => onFindNearby(product)}
+            className="w-full h-7 text-[10px] font-semibold text-primary bg-primary/5 hover:bg-primary/10 rounded-lg flex items-center justify-center gap-1 transition-colors"
+          >
+            <MapPin size={10} />
+            Find Nearby Stock
+          </button>
+        </div>
+      )}
     </div>
   );
 }

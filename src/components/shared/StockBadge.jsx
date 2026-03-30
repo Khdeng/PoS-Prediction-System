@@ -20,13 +20,12 @@ export default function StockBadge({ stock, forecast, showCount = true, variant 
 
   return (
     <span
-      className={`inline-flex items-center gap-1 text-[11px] font-semibold leading-none rounded-full
-        ${isCustomer ? 'px-2.5 py-1.5 w-full justify-center' : 'px-2 py-1'}
+      className={`inline-flex items-center gap-1 text-[11px] font-semibold leading-none
+        ${isCustomer ? 'px-2.5 py-1.5 w-full justify-center rounded-none' : 'px-2 py-1 rounded-full'}
         ${status === 'critical' ? 'animate-pulse-slow' : ''}`}
       style={{
         backgroundColor: config.bg,
         color: config.text,
-        ...(isCustomer && { borderRadius: 0 }),
       }}
     >
       {(status === 'low' || status === 'critical') && <AlertTriangle size={10} />}

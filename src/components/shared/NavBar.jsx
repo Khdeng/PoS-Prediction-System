@@ -18,7 +18,7 @@ export default function NavBar() {
         <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-glow-sm">
           <ShoppingCart size={14} className="text-white" />
         </div>
-        <span className="font-bold text-sm tracking-tight text-white">SuperMart</span>
+        <span className="font-bold text-sm tracking-tight text-white">HKUST Fusion</span>
       </div>
 
       <div className="flex items-center gap-0.5">

@@ -19,8 +19,9 @@ export default function OrderPanel() {
   const itemCount = currentOrder.reduce((sum, item) => sum + item.qty, 0);
 
   const handleCheckout = () => {
-    if (currentOrder.length === 0) return;
+    if (currentOrder.length === 0 || showSuccess) return;
     const order = checkout();
+    if (!order) return;
     setShowSuccess(true);
     showToast(`Order completed — ${formatPrice(order.total)}`);
     setTimeout(() => setShowSuccess(false), 1500);
@@ -97,7 +98,7 @@ export default function OrderPanel() {
         </div>
         <button
           onClick={handleCheckout}
-          disabled={currentOrder.length === 0}
+          disabled={currentOrder.length === 0 || showSuccess}
           className="w-full h-11 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all active:scale-[0.98] text-sm shadow-lg shadow-blue-500/25 disabled:shadow-none"
         >
           Checkout — {formatPrice(orderTotal)}

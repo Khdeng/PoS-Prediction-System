@@ -3,11 +3,6 @@ import { persist } from 'zustand/middleware';
 
 const STORAGE_KEY = 'pos-prediction-state';
 
-function loadSeedData() {
-  // Dynamic import won't work here; we import synchronously at top
-  return null;
-}
-
 export const useStore = create(
   persist(
     (set, get) => ({

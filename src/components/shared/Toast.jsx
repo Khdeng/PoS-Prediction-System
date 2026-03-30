@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle, X } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 
 const toasts = [];
 let listeners = [];
