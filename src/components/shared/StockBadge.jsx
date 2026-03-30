@@ -11,8 +11,7 @@ export default function StockBadge({ stock, forecast, showCount = true, variant 
   if (status === 'soldout') {
     label = 'Sold Out';
   } else if (isCustomer) {
-    if (stock > 20) label = 'In Stock';
-    else if (stock > 10) label = 'Available';
+    if (stock > 10) label = `${stock} In Stock`;
     else if (stock > 3) label = `Only ${stock} left`;
     else label = `Only ${stock} left — hurry!`;
   } else {

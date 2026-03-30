@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ShoppingCart, Trash2, Minus, Plus, X, CheckCircle } from 'lucide-react';
+import { ShoppingCart, Minus, Plus, X, CheckCircle } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { formatPrice } from '../../store/helpers';
 import ProductImage from '../shared/ProductImage';
@@ -34,14 +34,14 @@ export default function OrderPanel() {
   };
 
   return (
-    <div className="w-[320px] shrink-0 bg-white border-l border-slate-200 flex flex-col shadow-sm">
+    <div className="w-[300px] shrink-0 bg-white border-l border-slate-200/60 flex flex-col">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+      <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <ShoppingCart size={16} className="text-slate-600" />
-          <span className="font-semibold text-sm">Current Order</span>
+          <ShoppingCart size={15} className="text-slate-500" />
+          <span className="font-bold text-sm text-slate-800">Current Order</span>
           {itemCount > 0 && (
-            <span className="bg-primary text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+            <span className="bg-gradient-to-r from-blue-500 to-blue-600 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-sm">
               {itemCount}
             </span>
           )}
@@ -49,24 +49,24 @@ export default function OrderPanel() {
         {currentOrder.length > 0 && (
           <button
             onClick={handleClear}
-            className="text-xs text-slate-400 hover:text-red-500 transition-colors"
+            className="text-[11px] text-slate-400 hover:text-red-500 transition-colors font-medium"
           >
-            Clear All
+            Clear
           </button>
         )}
       </div>
 
       {/* Order items */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+      <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
         {showSuccess ? (
           <div className="flex flex-col items-center justify-center h-full gap-3">
-            <CheckCircle size={48} className="text-green-500 animate-scale-in" />
-            <p className="text-sm font-medium text-green-700">Order Complete!</p>
+            <CheckCircle size={48} className="text-emerald-500 animate-scale-in" />
+            <p className="text-sm font-semibold text-emerald-700">Order Complete!</p>
           </div>
         ) : currentOrder.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-300 gap-2 px-4">
-            <ShoppingCart size={40} strokeWidth={1} />
-            <p className="text-sm text-center text-slate-400">Tap a product to add it to the order</p>
+            <ShoppingCart size={36} strokeWidth={1} />
+            <p className="text-xs text-center text-slate-400">Tap a product to add it to the order</p>
           </div>
         ) : (
           currentOrder.map((item) => {
@@ -87,18 +87,18 @@ export default function OrderPanel() {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-slate-200 p-4 space-y-3">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-slate-500">Items: {itemCount}</span>
-          <span className="text-slate-500">Subtotal</span>
-        </div>
-        <div className="flex items-center justify-end">
-          <span className="text-2xl font-bold tabular-nums">{formatPrice(orderTotal)}</span>
+      <div className="border-t border-slate-200/60 p-4 space-y-3 bg-gradient-to-t from-slate-50/80 to-white">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-slate-400">{itemCount} items</span>
+          <div className="text-right">
+            <p className="text-[10px] text-slate-400 uppercase tracking-wider">Total</p>
+            <span className="text-xl font-black tabular-nums text-slate-900">{formatPrice(orderTotal)}</span>
+          </div>
         </div>
         <button
           onClick={handleCheckout}
           disabled={currentOrder.length === 0}
-          className="w-full h-12 bg-primary hover:bg-primary-hover disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors active:scale-[0.98] text-sm"
+          className="w-full h-11 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all active:scale-[0.98] text-sm shadow-lg shadow-blue-500/25 disabled:shadow-none"
         >
           Checkout — {formatPrice(orderTotal)}
         </button>
@@ -109,41 +109,41 @@ export default function OrderPanel() {
 
 function OrderLineItem({ item, product, categories, onUpdateQty, onRemove }) {
   return (
-    <div className="flex items-center gap-2.5 p-2 rounded-lg bg-slate-50 animate-slide-in-right">
+    <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-50/80 border border-slate-100/80 animate-slide-in-right hover:bg-slate-50 transition-colors">
       <ProductImage
         product={product}
         categories={categories}
-        className="w-9 h-9 rounded shrink-0"
+        className="w-8 h-8 rounded-lg shrink-0"
         size="sm"
       />
       <div className="flex-1 min-w-0">
-        <p className="text-[11px] text-slate-400 truncate">{product.brand}</p>
-        <p className="text-xs font-medium truncate">{product.shortName}</p>
+        <p className="text-[10px] text-slate-400 truncate">{product.brand}</p>
+        <p className="text-[11px] font-bold truncate text-slate-800">{product.shortName}</p>
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5">
         <button
           onClick={() => onUpdateQty(item.productId, item.qty - 1)}
-          className="w-6 h-6 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-100 transition-colors"
+          className="w-5 h-5 rounded-md border border-slate-200 flex items-center justify-center hover:bg-slate-100 active:scale-90 transition-all"
         >
-          <Minus size={12} />
+          <Minus size={10} />
         </button>
-        <span className="w-6 text-center text-xs font-semibold tabular-nums">{item.qty}</span>
+        <span className="w-5 text-center text-[11px] font-bold tabular-nums">{item.qty}</span>
         <button
           onClick={() => onUpdateQty(item.productId, item.qty + 1)}
           disabled={item.qty >= product.stock}
-          className="w-6 h-6 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-100 transition-colors disabled:opacity-30"
+          className="w-5 h-5 rounded-md border border-slate-200 flex items-center justify-center hover:bg-slate-100 active:scale-90 transition-all disabled:opacity-30"
         >
-          <Plus size={12} />
+          <Plus size={10} />
         </button>
       </div>
-      <span className="text-xs font-semibold tabular-nums w-14 text-right">
+      <span className="text-[11px] font-bold tabular-nums w-12 text-right text-slate-700">
         {formatPrice(item.price * item.qty)}
       </span>
       <button
         onClick={() => onRemove(item.productId)}
-        className="text-slate-300 hover:text-red-500 transition-colors"
+        className="text-slate-300 hover:text-red-500 active:scale-90 transition-all"
       >
-        <X size={14} />
+        <X size={12} />
       </button>
     </div>
   );

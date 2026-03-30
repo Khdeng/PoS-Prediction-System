@@ -42,7 +42,7 @@ BRAND_BARCODES = {
     ("Calbee", "BBQ"): "4892294300135",
     ("Calbee", "Jagabee"): "4892294300302",
     ("Garden", "Lemon"): None,  # HK local, unlikely to have
-]
+}
 
 SEARCH_FALLBACK = {
     "Coca Cola": "coca cola can",

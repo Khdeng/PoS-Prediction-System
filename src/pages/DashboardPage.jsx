@@ -1,16 +1,14 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { getStockStatus, getRelativeTime } from '../store/helpers';
 import SummaryBar from '../components/dashboard/SummaryBar';
 import InventorySection from '../components/dashboard/InventorySection';
-import ForecastSection from '../components/dashboard/ForecastSection';
-import OrderingSection from '../components/dashboard/OrderingSection';
+import UnifiedForecastOrder from '../components/dashboard/UnifiedForecastOrder';
 import ToastContainer from '../components/shared/Toast';
 
 export default function DashboardPage() {
   const products = useStore((s) => s.products);
   const categories = useStore((s) => s.categories);
-  const orderHistory = useStore((s) => s.orderHistory);
   const lastUpdated = useStore((s) => s.lastUpdated);
 
   const stats = useMemo(() => {
@@ -25,12 +23,15 @@ export default function DashboardPage() {
   }, [products]);
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 flex flex-col overflow-hidden">
       <SummaryBar stats={stats} lastUpdated={lastUpdated} />
-      <div className="p-4 space-y-4">
-        <InventorySection products={products} categories={categories} />
-        <ForecastSection products={products} categories={categories} />
-        <OrderingSection products={products} categories={categories} />
+      <div className="flex-1 flex gap-3 p-3 min-h-0">
+        {/* Left: Inventory sidebar */}
+        <div className="w-72 shrink-0 flex flex-col min-h-0">
+          <InventorySection products={products} categories={categories} />
+        </div>
+        {/* Right: Unified Forecast + Ordering */}
+        <UnifiedForecastOrder products={products} categories={categories} />
       </div>
       <ToastContainer />
     </div>
