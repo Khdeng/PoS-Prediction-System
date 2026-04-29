@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, AlertTriangle } from 'lucide-react';
 
 const toasts = [];
 let listeners = [];
@@ -12,7 +12,7 @@ export function showToast(message, type = 'success') {
     const idx = toasts.findIndex((t) => t.id === id);
     if (idx >= 0) toasts.splice(idx, 1);
     listeners.forEach((fn) => fn([...toasts]));
-  }, 3000);
+  }, 4000);
 }
 
 export default function ToastContainer() {
@@ -32,9 +32,15 @@ export default function ToastContainer() {
       {items.map((toast) => (
         <div
           key={toast.id}
-          className="bg-white rounded-lg shadow-lg border border-slate-200 px-4 py-3 flex items-center gap-2.5 min-w-[260px] animate-slide-in-right"
+          className={`bg-white rounded-lg shadow-lg border px-4 py-3 flex items-center gap-2.5 min-w-[260px] animate-slide-in-right ${
+            toast.type === 'warning' ? 'border-amber-200' : 'border-slate-200'
+          }`}
         >
-          <CheckCircle size={18} className="text-green-500 shrink-0" />
+          {toast.type === 'warning' ? (
+            <AlertTriangle size={18} className="text-amber-500 shrink-0" />
+          ) : (
+            <CheckCircle size={18} className="text-green-500 shrink-0" />
+          )}
           <span className="text-sm font-medium text-slate-700 flex-1">{toast.message}</span>
         </div>
       ))}

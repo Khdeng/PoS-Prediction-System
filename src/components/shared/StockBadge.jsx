@@ -13,7 +13,7 @@ export default function StockBadge({ stock, forecast, showCount = true, variant 
   } else if (isCustomer) {
     if (stock > 10) label = `${stock} In Stock`;
     else if (stock > 3) label = `Only ${stock} left`;
-    else label = `Only ${stock} left — hurry!`;
+    else label = `Only ${stock} left — availability may change`;
   } else {
     label = showCount ? `${stock} left` : config.label;
   }

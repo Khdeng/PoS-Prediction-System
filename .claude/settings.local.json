@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.wellcome.com.hk)",
+      "WebFetch(domain:umart.store)",
+      "WebFetch(domain:www.waiyeehong.com)",
+      "WebFetch(domain:www.desertcart.hk)",
+      "Bash(curl -L -o item_059.jpg \"https://cdn-mms.hktvmall.com/HKTV/mms/uploadProductImage/f5a6/a68e/2816/sfTLRKCAfS20240503130546_1200.jpg\" -w \"Pepsi: %{http_code}\\\\n\" --silent)",
+      "Bash(curl -L -o item_060.jpg \"https://umart.store/cdn/shop/products/Pokka_Green_Tea_600x.png\" -w \"Pokka: %{http_code}\\\\n\" --silent)",
+      "Bash(curl -L -o item_061.jpg \"https://umart.store/cdn/shop/products/Monster_Original_600x.png\" -w \"Monster: %{http_code}\\\\n\" --silent)",
+      "Bash(curl -L -o item_062.jpg \"https://cdn-mms.hktvmall.com/hktv/mms/uploadProductImage/9d35/291c/39f6/MxdtLofFax20230802113205_1200.jpg\" -w \"Lays: %{http_code}\\\\n\" --silent)",
+      "Bash(curl -L -o item_063.jpg \"https://images.hktvmall.com/h0888001/691ab958cae4bca2e59c9c97ae6ca390a52e59f8/h0888001_10013817_220912051645_01_1200.jpg\" -w \"ChipsAhoy: %{http_code}\\\\n\" --silent)",
+      "Bash(curl -L -o item_066.jpg \"https://images.openfoodfacts.org/images/products/800/359/056/5071/front_en.5.400.jpg\" -w \"Cornetto OFF: %{http_code}\\\\n\" --silent)",
+      "Bash(curl -s \"https://world.openfoodfacts.org/cgi/search.pl?search_terms=cornetto+vanilla&json=1&page_size=5\")",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s \"https://world.openfoodfacts.org/api/v0/product/8000500139660.json\")",
+      "Bash(curl -L -o item_066_test.jpg \"https://umart.store/cdn/shop/products/WallsCornetto_600x.png\" -w \"umart cornetto: %{http_code}\\\\n\" --silent)",
+      "Bash(curl -s \"https://umart.store/collections/ice-cream\")",
+      "Bash(curl -s \"https://en.wikipedia.org/w/api.php?action=query&titles=Cornetto_\\(ice_cream\\)&prop=pageimages&format=json&pithumbsize=600\")",
+      "Bash(curl -s \"https://commons.wikimedia.org/w/api.php?action=query&list=search&srsearch=cornetto+ice+cream+walls&srnamespace=6&format=json&srlimit=5\")",
+      "Bash(curl -s \"https://commons.wikimedia.org/w/api.php?action=query&titles=File:Cornetto_Rum_Raisin_ice_cream_cup_\\(20190531163049\\).jpg&prop=imageinfo&iiprop=url&format=json\")",
+      "Bash(curl -L -o item_066.jpg \"https://upload.wikimedia.org/wikipedia/commons/b/b1/Cornetto_Rum_Raisin_ice_cream_cup_%2820190531163049%29.jpg\" -w \"Cornetto: %{http_code}\\\\n\" --silent)",
+      "Bash(npm run *)"
+    ]
+  }
+}

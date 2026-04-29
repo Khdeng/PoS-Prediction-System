@@ -12,6 +12,8 @@ export const useStore = create(
       currentOrder: [],
       lastUpdated: null,
       initialized: false,
+      watchlist: [],
+      watchlistCreatedAt: null,
 
       // Initialize store with seed data
       initialize: (seedData) => {
@@ -138,6 +140,22 @@ export const useStore = create(
         });
       },
 
+      // Watchlist: toggle item in/out
+      toggleWatchlist: (productId) => {
+        const { watchlist, watchlistCreatedAt } = get();
+        const exists = watchlist.includes(productId);
+        const newList = exists
+          ? watchlist.filter((id) => id !== productId)
+          : [...watchlist, productId];
+        set({
+          watchlist: newList,
+          watchlistCreatedAt: newList.length > 0 ? (watchlistCreatedAt || new Date().toISOString()) : null,
+        });
+      },
+
+      // Watchlist: clear all
+      clearWatchlist: () => set({ watchlist: [], watchlistCreatedAt: null }),
+
       // Dashboard: Toggle auto-order for item
       toggleAutoOrder: (productId) => {
         set({
@@ -166,6 +184,8 @@ export const useStore = create(
         orderHistory: state.orderHistory,
         lastUpdated: state.lastUpdated,
         initialized: state.initialized,
+        watchlist: state.watchlist,
+        watchlistCreatedAt: state.watchlistCreatedAt,
       }),
     },
   ),
