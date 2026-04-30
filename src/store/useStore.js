@@ -14,6 +14,7 @@ export const useStore = create(
       initialized: false,
       watchlist: [],
       watchlistCreatedAt: null,
+      watchlistLastStock: {}, // persisted snapshot of stock for watched items
 
       // Initialize store with seed data
       initialize: (seedData) => {
@@ -108,11 +109,19 @@ export const useStore = create(
           timestamp: new Date().toISOString(),
         };
 
+        // Snapshot updated stock for watched items so customer page can detect changes after navigation
+        const { watchlist } = get();
+        const updatedLastStock = {};
+        updatedProducts.forEach((p) => {
+          if (watchlist.includes(p.id)) updatedLastStock[p.id] = p.stock;
+        });
+
         set({
           products: updatedProducts,
           currentOrder: [],
           orderHistory: [...orderHistory, order],
           lastUpdated: new Date().toISOString(),
+          watchlistLastStock: { ...get().watchlistLastStock, ...updatedLastStock },
         });
 
         return order;
@@ -186,6 +195,7 @@ export const useStore = create(
         initialized: state.initialized,
         watchlist: state.watchlist,
         watchlistCreatedAt: state.watchlistCreatedAt,
+        watchlistLastStock: state.watchlistLastStock,
       }),
     },
   ),

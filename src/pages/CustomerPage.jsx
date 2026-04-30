@@ -1,11 +1,34 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, ChevronDown, ChevronRight, ShoppingCart, MapPin, Shuffle, Bookmark, BookmarkCheck, X, Clock, Users } from 'lucide-react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { Search, ChevronDown, ChevronRight, ShoppingCart, MapPin, Shuffle, Bookmark, BookmarkCheck, X, Clock, Users, AlertTriangle } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { getRelativeTime, formatPrice, getStockStatus } from '../store/helpers';
 import ProductImage from '../components/shared/ProductImage';
 import StockBadge from '../components/shared/StockBadge';
 import StoreFinderModal from '../components/customer/StoreFinderModal';
-import { showToast } from '../components/shared/Toast';
+
+function usePhoneToast() {
+  const [toasts, setToasts] = useState([]);
+  const show = useCallback((message) => {
+    const id = Date.now();
+    setToasts((prev) => [...prev, { id, message }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
+  }, []);
+  return { toasts, show };
+}
+
+function PhoneToastContainer({ toasts }) {
+  if (toasts.length === 0) return null;
+  return (
+    <div className="absolute top-16 left-3 right-3 z-50 flex flex-col gap-1.5 pointer-events-none">
+      {toasts.map((t) => (
+        <div key={t.id} className="bg-slate-900/90 text-white rounded-xl px-3 py-2.5 flex items-start gap-2 shadow-lg animate-slide-in-right backdrop-blur-sm">
+          <AlertTriangle size={13} className="text-amber-400 shrink-0 mt-0.5" />
+          <p className="text-[11px] font-semibold leading-snug">{t.message}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 const SIMILAR_ITEMS = {
   item_001: ['item_059'],
@@ -52,19 +75,28 @@ export default function CustomerPage() {
   const categories = useStore((s) => s.categories);
   const lastUpdated = useStore((s) => s.lastUpdated);
   const watchlist = useStore((s) => s.watchlist);
+  const watchlistLastStock = useStore((s) => s.watchlistLastStock);
   const [finderProduct, setFinderProduct] = useState(null);
+  const { toasts, show: showPhoneToast } = usePhoneToast();
 
-  // Out-of-stock notification for watched items
-  const prevStockRef = useRef({});
+  // Fire notifications whenever watchlistLastStock differs from current stock
+  // This covers both: navigating back to this page AND live changes in same session
+  const processedRef = useRef(null);
   useEffect(() => {
-    const prev = prevStockRef.current;
+    if (products.length === 0 || processedRef.current === lastUpdated) return;
+    processedRef.current = lastUpdated;
     products.forEach((p) => {
-      if (watchlist.includes(p.id) && prev[p.id] > 0 && p.stock === 0) {
-        showToast(`${p.shortName} is now out of stock`, 'warning');
+      if (!watchlist.includes(p.id)) return;
+      const lastStock = watchlistLastStock[p.id];
+      if (lastStock === undefined || lastStock === p.stock) return;
+      const status = getStockStatus(p.stock, p.forecast);
+      if (p.stock === 0) {
+        showPhoneToast(`${p.shortName} is now out of stock`);
+      } else if (status === 'critical' || status === 'low') {
+        showPhoneToast(`${p.shortName} — only ${p.stock} left now`);
       }
-      prev[p.id] = p.stock;
     });
-  }, [products, watchlist]);
+  }, [lastUpdated, products, watchlist, watchlistLastStock]);
 
   return (
     <div className="flex-1 flex items-start justify-center bg-gradient-to-b from-slate-100 to-slate-200 p-8 overflow-y-auto">
@@ -76,6 +108,7 @@ export default function CustomerPage() {
 
           {/* Screen */}
           <div className="w-full h-[810px] bg-white rounded-[40px] overflow-hidden flex flex-col relative">
+            <PhoneToastContainer toasts={toasts} />
             <PhoneContent
               products={products}
               categories={categories}
@@ -437,7 +470,7 @@ function CustomerItemCard({ product, products, categories, onFindNearby, onNavig
       {/* Badge + watchers */}
       <div className="mt-1.5">
         <StockBadge stock={product.stock} forecast={product.forecast} variant="customer" />
-        {(isLow || isSoldOut) && (
+        {isLow && !isSoldOut && (
           <p className="text-[9px] text-slate-400 text-center mt-0.5 flex items-center justify-center gap-1">
             <Users size={8} />
             {watcherCount} people watching

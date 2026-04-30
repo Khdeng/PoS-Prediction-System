@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Minus, Plus, Truck, CheckCircle, Search, ChevronRight, ChevronDown, TrendingUp, BarChart3, Package } from 'lucide-react';
+import { Minus, Plus, Truck, CheckCircle, Search, ChevronRight, ChevronDown, TrendingUp, BarChart3, Package, Settings, X, Send, RotateCcw } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { getStockStatus, STATUS_CONFIG, getSuggestedOrder, formatPrice } from '../../store/helpers';
 import { showToast } from '../shared/Toast';
@@ -26,11 +26,12 @@ function Sparkline({ data, color = '#3B82F6', width = 72, height = 22 }) {
   );
 }
 
-function AreaChart({ pastData, futureData, color, pastDates, futureDates }) {
+function AreaChart({ pastData, futureData, pastEstData, color, pastDates, futureDates }) {
   const [hoverIdx, setHoverIdx] = useState(null);
 
   const all = [...pastData, ...futureData];
-  const max = Math.max(...all, 1);
+  const allEst = pastEstData ? [...pastEstData, ...futureData] : null;
+  const max = Math.max(...all, ...(pastEstData || []), 1);
   const W = 500;
   const H = 115;
   const pad = { top: 6, bottom: 22, left: 6, right: 6 };
@@ -50,16 +51,20 @@ function AreaChart({ pastData, futureData, color, pastDates, futureDates }) {
   });
 
   const allPts = all.map((v, i) => getPoint(v, i));
+  const allEstPts = allEst ? allEst.map((v, i) => getPoint(v, i)) : null;
   const pastPts = allPts.slice(0, splitIdx);
   const futurePts = allPts.slice(splitIdx - 1);
+  const pastEstPts = allEstPts ? allEstPts.slice(0, splitIdx) : null;
 
   const pastLine = pastPts.map((p) => `${p.x},${p.y}`).join(' ');
   const futureLine = futurePts.map((p) => `${p.x},${p.y}`).join(' ');
+  const pastEstLine = pastEstPts ? pastEstPts.map((p) => `${p.x},${p.y}`).join(' ') : null;
 
-  const dividerX = (pastPts[pastPts.length - 1].x + allPts[splitIdx].x) / 2;
   const lastPast = pastPts[pastPts.length - 1];
   const pastArea = `${pastLine} ${lastPast.x},${pad.top + chartH} ${pastPts[0].x},${pad.top + chartH}`;
   const labelY = H - 4;
+
+  const estColor = '#94A3B8';
 
   return (
     <svg
@@ -80,25 +85,29 @@ function AreaChart({ pastData, futureData, color, pastDates, futureDates }) {
       {[0.25, 0.5, 0.75].map((r) => (
         <line key={r} x1={pad.left} x2={W - pad.right} y1={pad.top + chartH * (1 - r)} y2={pad.top + chartH * (1 - r)} stroke="#E2E8F0" strokeWidth="0.5" strokeDasharray="4 4" />
       ))}
-      {/* X-axis baseline */}
       <line x1={pad.left} x2={W - pad.right} y1={pad.top + chartH} y2={pad.top + chartH} stroke="#E2E8F0" strokeWidth="0.5" />
 
-      {/* Today divider — positioned at the last past data point */}
+      {/* Today divider */}
       <line x1={lastPast.x} y1={pad.top} x2={lastPast.x} y2={pad.top + chartH} stroke="#94A3B8" strokeWidth="0.8" strokeDasharray="3 3" />
 
       {/* Past area fill */}
       <polygon points={pastArea} fill={`url(#grad-${color.replace('#', '')})`} />
-      {/* Past line (solid) */}
+
+      {/* Past estimated line (dashed grey) — behind actual */}
+      {pastEstLine && (
+        <polyline fill="none" stroke={estColor} strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round" strokeDasharray="4 3" opacity="0.6" points={pastEstLine} />
+      )}
+
+      {/* Past actual line (solid, coloured) */}
       <polyline fill="none" stroke={color} strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" points={pastLine} />
-      {/* Future line (dashed) */}
+      {/* Future forecast line (dashed, coloured) */}
       <polyline fill="none" stroke={color} strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" strokeDasharray="5 3" opacity="0.5" points={futureLine} />
 
-      {/* X-axis labels — aligned to each data point */}
+      {/* X-axis labels */}
       {allPts.map((p, i) => {
         const d = allDates[i];
         const wkend = isWeekendDay(d);
         const isPast = i < splitIdx;
-        // Last past point = today — show "Today" instead of day name
         const isToday = i === splitIdx - 1;
         return (
           <text
@@ -115,18 +124,37 @@ function AreaChart({ pastData, futureData, color, pastDates, futureDates }) {
         );
       })}
 
+      {/* Estimated dots (past only) */}
+      {pastEstPts && pastEstPts.map((p, i) => (
+        <circle key={`est-${i}`} cx={p.x} cy={p.y} r={1.8} fill="white" stroke={estColor} strokeWidth="1.2" opacity="0.7" />
+      ))}
+
       {/* Hover crosshair + tooltip */}
-      {hoverIdx !== null && (
-        <>
-          <line x1={allPts[hoverIdx].x} y1={pad.top} x2={allPts[hoverIdx].x} y2={pad.top + chartH} stroke={color} strokeWidth="1" opacity="0.25" />
-          <circle cx={allPts[hoverIdx].x} cy={allPts[hoverIdx].y} r={4.5} fill="white" stroke={color} strokeWidth="2" />
-          <g transform={`translate(${Math.min(Math.max(allPts[hoverIdx].x, 35), W - 35)}, ${Math.max(allPts[hoverIdx].y - 30, 6)})`}>
-            <rect x={-30} y={-12} width={60} height={24} rx={5} fill="#0F172A" opacity="0.92" />
-            <text x={0} y={-1} textAnchor="middle" fill="#94A3B8" fontSize="7">{fmtDate(allDates[hoverIdx])}</text>
-            <text x={0} y={9} textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">{all[hoverIdx]} units</text>
-          </g>
-        </>
-      )}
+      {hoverIdx !== null && (() => {
+        const p = allPts[hoverIdx];
+        const actual = all[hoverIdx];
+        const estimated = allEst ? allEst[hoverIdx] : null;
+        const isPast = hoverIdx < splitIdx;
+        const tooltipH = isPast && estimated != null ? 38 : 24;
+        return (
+          <>
+            <line x1={p.x} y1={pad.top} x2={p.x} y2={pad.top + chartH} stroke={color} strokeWidth="1" opacity="0.25" />
+            <circle cx={p.x} cy={p.y} r={4.5} fill="white" stroke={color} strokeWidth="2" />
+            <g transform={`translate(${Math.min(Math.max(p.x, 40), W - 40)}, ${Math.max(p.y - 34, 6)})`}>
+              <rect x={-36} y={-12} width={72} height={tooltipH} rx={5} fill="#0F172A" opacity="0.92" />
+              <text x={0} y={-1} textAnchor="middle" fill="#94A3B8" fontSize="7">{fmtDate(allDates[hoverIdx])}</text>
+              <text x={isPast && estimated != null ? -4 : 0} y={10} textAnchor={isPast && estimated != null ? 'end' : 'middle'} fill="white" fontSize="9.5" fontWeight="bold">{actual}</text>
+              {isPast && estimated != null && (
+                <>
+                  <text x={0} y={10} textAnchor="middle" fill="#64748B" fontSize="8"> | </text>
+                  <text x={4} y={10} textAnchor="start" fill={estColor} fontSize="9.5">{estimated}</text>
+                  <text x={0} y={21} textAnchor="middle" fill="#64748B" fontSize="6.5">actual | est.</text>
+                </>
+              )}
+            </g>
+          </>
+        );
+      })()}
 
       {/* Dots + hover targets */}
       {allPts.map((p, i) => (
@@ -139,23 +167,140 @@ function AreaChart({ pastData, futureData, color, pastDates, futureDates }) {
             stroke={color}
             strokeWidth={i < splitIdx ? 0 : 1.5}
           />
-          <circle
-            cx={p.x}
-            cy={p.y}
-            r={14}
-            fill="transparent"
-            onMouseEnter={() => setHoverIdx(i)}
-            style={{ cursor: 'pointer' }}
-          />
+          <circle cx={p.x} cy={p.y} r={14} fill="transparent" onMouseEnter={() => setHoverIdx(i)} style={{ cursor: 'pointer' }} />
         </g>
       ))}
     </svg>
   );
 }
 
+/* ── Auto-Order Config Panel ──────────────────────────────── */
+
+function AutoOrderConfigPanel({ config, onChange, onClose, accent, product }) {
+  return (
+    <div className="mb-3 bg-white border border-slate-200 rounded-xl shadow-lg p-3 relative animate-fade-in">
+      <button onClick={onClose} className="absolute top-2 right-2 w-5 h-5 rounded-md flex items-center justify-center hover:bg-slate-100 transition-colors">
+        <X size={11} className="text-slate-400" />
+      </button>
+
+      <div className="flex items-center gap-1.5 mb-2.5">
+        <Settings size={11} className="text-primary" />
+        <p className="text-[11px] font-bold text-slate-700">Auto-Order Configuration</p>
+      </div>
+
+      {/* Enable toggle */}
+      <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-slate-100">
+        <div>
+          <p className="text-[10px] font-semibold text-slate-700">Enable Auto-Ordering</p>
+          <p className="text-[9px] text-slate-400">Automatically place orders based on rules below</p>
+        </div>
+        <button
+          onClick={() => onChange({ enabled: !config.enabled })}
+          className={`relative w-9 h-[18px] rounded-full transition-all duration-300 overflow-hidden ${config.enabled ? 'bg-emerald-500' : 'bg-slate-300'}`}
+        >
+          <span className={`absolute top-[2px] left-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-md transition-transform duration-300 ${config.enabled ? 'translate-x-[18px]' : 'translate-x-0'}`} />
+        </button>
+      </div>
+
+      <div className={`space-y-3 transition-opacity ${config.enabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
+        {/* Rule selector */}
+        <div>
+          <p className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Ordering Rule</p>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => onChange({ rule: 'threshold' })}
+              className={`flex-1 py-1.5 rounded-lg text-[9px] font-semibold border transition-all ${
+                config.rule === 'threshold' ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-slate-300'
+              }`}
+            >
+              Stock Threshold
+            </button>
+            <button
+              onClick={() => onChange({ rule: 'forecast' })}
+              className={`flex-1 py-1.5 rounded-lg text-[9px] font-semibold border transition-all ${
+                config.rule === 'forecast' ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-slate-300'
+              }`}
+            >
+              Forecast-Based
+            </button>
+          </div>
+        </div>
+
+        {config.rule === 'threshold' ? (
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <p className="text-[9px] text-slate-500 mb-1">Order when stock ≤</p>
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  value={config.thresholdStock}
+                  onChange={(e) => onChange({ thresholdStock: Math.max(0, parseInt(e.target.value) || 0) })}
+                  className="w-full h-6 text-center text-[10px] font-bold border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary"
+                />
+                <span className="text-[9px] text-slate-400 shrink-0">units</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-[9px] text-slate-500 mb-1">Order quantity</p>
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  value={config.thresholdQty}
+                  onChange={(e) => onChange({ thresholdQty: Math.max(1, parseInt(e.target.value) || 1) })}
+                  className="w-full h-6 text-center text-[10px] font-bold border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary"
+                />
+                <span className="text-[9px] text-slate-400 shrink-0">units</span>
+              </div>
+            </div>
+            <div className="col-span-2">
+              <p className="text-[9px] text-slate-400 bg-slate-50 rounded-lg px-2 py-1.5">
+                When stock drops to <strong>{config.thresholdStock}</strong> or below, order <strong>{config.thresholdQty}</strong> units automatically.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <p className="text-[9px] text-slate-500 mb-1">Order lead time</p>
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  value={config.leadDays}
+                  onChange={(e) => onChange({ leadDays: Math.max(1, Math.min(7, parseInt(e.target.value) || 1)) })}
+                  className="w-full h-6 text-center text-[10px] font-bold border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary"
+                />
+                <span className="text-[9px] text-slate-400 shrink-0">days ahead</span>
+              </div>
+            </div>
+            <div className="flex flex-col justify-end">
+              <p className="text-[9px] text-slate-400 bg-slate-50 rounded-lg px-2 py-1.5">
+                Orders forecasted demand <strong>{config.leadDays}d</strong> before needed.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Notification preference */}
+        <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+          <div>
+            <p className="text-[10px] font-semibold text-slate-700">Silent mode</p>
+            <p className="text-[9px] text-slate-400">Skip confirmation toast when auto-ordering</p>
+          </div>
+          <button
+            onClick={() => onChange({ silent: !config.silent })}
+            className={`relative w-9 h-[18px] rounded-full transition-all duration-300 overflow-hidden ${config.silent ? 'bg-slate-500' : 'bg-slate-300'}`}
+          >
+            <span className={`absolute top-[2px] left-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-md transition-transform duration-300 ${config.silent ? 'translate-x-[18px]' : 'translate-x-0'}`} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Layout constant ──────────────────────────────────────── */
 
-const COL_GRID = 'grid grid-cols-[minmax(130px,1.4fr)_48px_44px_40px_40px_72px_40px_minmax(130px,1fr)]';
+const COL_GRID = 'grid grid-cols-[minmax(130px,1.4fr)_48px_44px_40px_40px_72px_40px_52px_minmax(130px,1fr)]';
 
 /* ── Main component ───────────────────────────────────────── */
 
@@ -163,11 +308,16 @@ export default function UnifiedForecastOrder({ products, categories }) {
   const placeOrder = useStore((s) => s.placeOrder);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [autoOrder, setAutoOrder] = useState(false);
   const [orderQtys, setOrderQtys] = useState({});
+  const [daysQtys, setDaysQtys] = useState({});
   const [orderedItems, setOrderedItems] = useState({});
   const [loading, setLoading] = useState({});
   const [expandedRow, setExpandedRow] = useState(null);
+  // Per-day orders: { [productId]: { [dayIdx]: { qty, sent, confirmed } } }
+  const [dayOrders, setDayOrders] = useState({});
+  // Auto-order config: { [productId]: { enabled, rule, thresholdStock, thresholdQty, leadDays, silent } }
+  const [autoConfigs, setAutoConfigs] = useState({});
+  const [autoConfigOpen, setAutoConfigOpen] = useState(null); // productId of open popup
 
   const today = new Date();
   const futureDates = Array.from({ length: 14 }, (_, i) => {
@@ -198,6 +348,16 @@ export default function UnifiedForecastOrder({ products, categories }) {
 
   const getQty = (product) => orderQtys[product.id] !== undefined ? orderQtys[product.id] : getSuggestedOrder(product);
   const setQty = (productId, qty) => setOrderQtys((prev) => ({ ...prev, [productId]: Math.max(0, qty) }));
+  const getDays = (productId) => daysQtys[productId] ?? '';
+  const setDays = (product, days) => {
+    const d = Math.max(0, parseInt(days) || 0);
+    setDaysQtys((prev) => ({ ...prev, [product.id]: d || '' }));
+    if (d > 0) {
+      // Sum the next d days of forecast directly
+      const total = product.forecast.slice(0, d).reduce((a, b) => a + b, 0);
+      setQty(product.id, total);
+    }
+  };
 
   const handleOrder = (product) => {
     const qty = getQty(product);
@@ -212,6 +372,37 @@ export default function UnifiedForecastOrder({ products, categories }) {
       setTimeout(() => setOrderedItems((prev) => ({ ...prev, [product.id]: false })), 3000);
     }, 1500);
   };
+
+  const getDayOrder = (productId, dayIdx) =>
+    dayOrders[productId]?.[dayIdx] || { qty: 0, sent: false };
+
+  const setDayOrderQty = (productId, dayIdx, qty) =>
+    setDayOrders((prev) => ({
+      ...prev,
+      [productId]: { ...prev[productId], [dayIdx]: { ...getDayOrder(productId, dayIdx), qty: Math.max(0, qty), sent: false } },
+    }));
+
+  const sendDayOrder = (product, dayIdx, forecastQty) => {
+    const order = getDayOrder(product.id, dayIdx);
+    const qty = order.qty || forecastQty;
+    setDayOrders((prev) => ({
+      ...prev,
+      [product.id]: { ...prev[product.id], [dayIdx]: { qty, sent: true } },
+    }));
+    showToast(`Scheduled ${qty} × ${product.shortName} for ${formatDate(futureDates[dayIdx])}`);
+  };
+
+  const modifyDayOrder = (productId, dayIdx) =>
+    setDayOrders((prev) => ({
+      ...prev,
+      [productId]: { ...prev[productId], [dayIdx]: { ...getDayOrder(productId, dayIdx), sent: false } },
+    }));
+
+  const getAutoConfig = (productId) =>
+    autoConfigs[productId] || { enabled: false, rule: 'threshold', thresholdStock: 10, thresholdQty: 30, leadDays: 1, silent: false };
+
+  const setAutoConfig = (productId, updates) =>
+    setAutoConfigs((prev) => ({ ...prev, [productId]: { ...getAutoConfig(productId), ...updates } }));
 
   const handleBulkOrder = () => {
     const toOrder = sorted.filter((p) => getSuggestedOrder(p) > 0);
@@ -251,15 +442,6 @@ export default function UnifiedForecastOrder({ products, categories }) {
         </select>
 
         <div className="ml-auto flex items-center gap-3">
-          <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-            <span className="text-slate-500">Auto</span>
-            <button
-              onClick={() => setAutoOrder(!autoOrder)}
-              className={`relative w-9 h-[18px] rounded-full transition-all duration-300 ${autoOrder ? 'bg-gradient-to-r from-green-500 to-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.3)]' : 'bg-slate-300'}`}
-            >
-              <span className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-md transition-transform duration-300 ${autoOrder ? 'translate-x-[18px]' : 'translate-x-[2px]'}`} />
-            </button>
-          </label>
           <button
             onClick={handleBulkOrder}
             className="h-7 px-3 text-[11px] font-semibold bg-gradient-to-r from-primary to-blue-600 text-white rounded-lg hover:shadow-md hover:shadow-primary/25 active:scale-[0.97] transition-all flex items-center gap-1.5"
@@ -278,6 +460,7 @@ export default function UnifiedForecastOrder({ products, categories }) {
         <div className="px-1 py-1.5 text-center">7d</div>
         <div className="px-1 py-1.5 text-center">Trend</div>
         <div className="px-1 py-1.5 text-center">Sugg.</div>
+        <div className="px-1 py-1.5 text-center">Days</div>
         <div className="px-1 py-1.5 text-center">Order</div>
       </div>
 
@@ -298,6 +481,8 @@ export default function UnifiedForecastOrder({ products, categories }) {
           // Past sales data — replace last entry with live salesToday
           const rawHistory = product.salesHistory || Array(7).fill(0);
           const salesHistory = [...rawHistory.slice(0, 6), product.salesToday];
+          // Estimated past: use forecast[7..13] as "what was predicted for last week"
+          const pastEstimated = product.forecast.slice(7, 14);
           const pastTotal = salesHistory.reduce((a, b) => a + b, 0);
           const avgPast = pastTotal / 7;
           const avgForecast = sevenDay / 7;
@@ -342,6 +527,17 @@ export default function UnifiedForecastOrder({ products, categories }) {
                 {/* Suggested */}
                 <div className={`px-1 py-2 text-center tabular-nums font-semibold ${suggested > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
                   {suggested}
+                </div>
+                {/* Days */}
+                <div className="px-1 py-2 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="number"
+                    value={getDays(product.id)}
+                    onChange={(e) => setDays(product, e.target.value)}
+                    placeholder="d"
+                    min="0"
+                    className="w-10 h-5 text-center text-[11px] font-bold tabular-nums border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder-slate-300"
+                  />
                 </div>
                 {/* Order controls */}
                 <div className="px-2 py-2 flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
@@ -417,7 +613,11 @@ export default function UnifiedForecastOrder({ products, categories }) {
                           <div className="flex items-center gap-3 text-[9px] text-slate-400">
                             <span className="flex items-center gap-1">
                               <span className="w-4 h-[2px] rounded" style={{ backgroundColor: cat?.accent || '#3B82F6' }} />
-                              Past 7d
+                              Actual
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <span className="w-4 h-[2px] rounded border-t-[2px] border-dashed border-slate-400" />
+                              Estimated
                             </span>
                             <span className="flex items-center gap-1">
                               <span className="w-4 h-[2px] rounded border-t-[2px] border-dashed" style={{ borderColor: cat?.accent || '#3B82F6' }} />
@@ -435,6 +635,7 @@ export default function UnifiedForecastOrder({ products, categories }) {
                       <AreaChart
                         pastData={salesHistory}
                         futureData={product.forecast.slice(0, 7)}
+                        pastEstData={pastEstimated}
                         pastDates={pastDates}
                         futureDates={futureDates.slice(0, 7)}
                         color={cat?.accent || '#3B82F6'}
@@ -465,14 +666,55 @@ export default function UnifiedForecastOrder({ products, categories }) {
                     </div>
                   </div>
 
-                  {/* Bottom: Daily breakdown */}
-                  <div className="px-4 pb-3">
+                  {/* Bottom: Daily breakdown + per-day ordering */}
+                  <div className="px-4 pb-3 border-t border-slate-100 pt-3">
+                    {/* Section header */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Daily Schedule</p>
+                        <span className="text-[9px] text-slate-400 flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-sm inline-block" style={{ backgroundColor: cat?.accent, opacity: 0.7 }} /> Actual
+                          <span className="w-2 h-2 rounded-sm inline-block ml-1" style={{ backgroundColor: cat?.accent, opacity: 0.3 }} /> Forecast
+                        </span>
+                      </div>
+                      {/* Current stock pill */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full border" style={{ color: config.text, backgroundColor: config.bg, borderColor: config.border }}>
+                          Stock: {product.stock}
+                        </span>
+                        {/* Auto-order config button */}
+                        <button
+                          onClick={() => setAutoConfigOpen(autoConfigOpen === product.id ? null : product.id)}
+                          className={`flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full border transition-all ${
+                            getAutoConfig(product.id).enabled
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          <Settings size={9} />
+                          Auto-Order {getAutoConfig(product.id).enabled ? 'ON' : 'OFF'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Auto-order config popup */}
+                    {autoConfigOpen === product.id && (
+                      <AutoOrderConfigPanel
+                        config={getAutoConfig(product.id)}
+                        onChange={(updates) => setAutoConfig(product.id, updates)}
+                        onClose={() => setAutoConfigOpen(null)}
+                        accent={cat?.accent || '#3B82F6'}
+                        product={product}
+                      />
+                    )}
+
                     <div className="flex gap-[3px] overflow-x-auto">
+                      {/* Past days */}
                       {salesHistory.map((val, i) => {
                         const maxVal = Math.max(...salesHistory, ...product.forecast.slice(0, 7));
                         const barH = maxVal > 0 ? (val / maxVal) * 28 : 0;
                         return (
-                          <div key={`past-${i}`} className="flex flex-col items-center gap-0.5 flex-1 min-w-[28px]">
+                          <div key={`past-${i}`} className="flex flex-col items-center gap-0.5 flex-1 min-w-[32px]">
                             <span className="text-[8px] font-bold tabular-nums text-slate-600">{val}</span>
                             <div className="w-full h-7 bg-slate-100 rounded-sm overflow-hidden flex items-end">
                               <div className="w-full rounded-sm transition-all" style={{ height: barH, backgroundColor: cat?.accent || '#3B82F6', opacity: 0.7 }} />
@@ -483,12 +725,19 @@ export default function UnifiedForecastOrder({ products, categories }) {
                           </div>
                         );
                       })}
+
                       <div className="w-px bg-slate-300 mx-1 shrink-0 self-stretch" />
+
+                      {/* Future days with ordering */}
                       {product.forecast.slice(0, 7).map((val, i) => {
                         const maxVal = Math.max(...salesHistory, ...product.forecast.slice(0, 7));
                         const barH = maxVal > 0 ? (val / maxVal) * 28 : 0;
+                        const dayOrder = getDayOrder(product.id, i);
+                        const isSent = dayOrder.sent;
+                        const inputQty = dayOrder.qty || val;
+
                         return (
-                          <div key={`fut-${i}`} className="flex flex-col items-center gap-0.5 flex-1 min-w-[28px]">
+                          <div key={`fut-${i}`} className={`flex flex-col items-center gap-0.5 flex-1 min-w-[44px] rounded-md pb-1 ${isSent ? 'bg-emerald-50/60' : ''}`}>
                             <span className="text-[8px] font-bold tabular-nums text-slate-400">{val}</span>
                             <div className="w-full h-7 bg-slate-100 rounded-sm overflow-hidden flex items-end">
                               <div className="w-full rounded-sm transition-all" style={{ height: barH, backgroundColor: cat?.accent || '#3B82F6', opacity: 0.35 }} />
@@ -496,6 +745,35 @@ export default function UnifiedForecastOrder({ products, categories }) {
                             <span className={`text-[7px] ${isWeekend(futureDates[i]) ? 'text-amber-500 font-bold' : 'text-slate-400'}`}>
                               {formatDate(futureDates[i])}
                             </span>
+
+                            {/* Order input + send */}
+                            {isSent ? (
+                              <div className="flex flex-col items-center gap-0.5 w-full px-0.5">
+                                <span className="text-[8px] font-bold text-emerald-600 tabular-nums">{dayOrder.qty} ordered</span>
+                                <button
+                                  onClick={() => modifyDayOrder(product.id, i)}
+                                  className="w-full text-[7px] text-slate-400 hover:text-primary flex items-center justify-center gap-0.5 transition-colors"
+                                >
+                                  <RotateCcw size={7} /> Modify
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center gap-0.5 w-full px-0.5">
+                                <input
+                                  type="number"
+                                  value={inputQty}
+                                  onChange={(e) => setDayOrderQty(product.id, i, parseInt(e.target.value) || 0)}
+                                  className="w-full h-5 text-center text-[9px] font-bold tabular-nums border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary transition-all"
+                                />
+                                <button
+                                  onClick={() => sendDayOrder(product, i, val)}
+                                  className="w-full h-4 text-[7px] font-bold rounded flex items-center justify-center gap-0.5 transition-all"
+                                  style={{ backgroundColor: `${cat?.accent}20`, color: cat?.accent }}
+                                >
+                                  <Send size={7} /> Send
+                                </button>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
